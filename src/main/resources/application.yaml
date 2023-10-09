@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: mancala
+  main:
+    banner-mode: off
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:54321}/${DB_NAME:mancala}
+    username: ${DB_LOGIN:mancala}
+    password: ${DB_PASSWORD:mancala}
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+  flyway:
+    connect-retries: 5
+    connect-retries-interval: 1s

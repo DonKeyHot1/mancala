@@ -1,0 +1,29 @@
+services:
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: dev.Dockerfile
+    ports:
+      - 3000:3000
+
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    ports:
+      - 54321:5432
+    environment:
+      POSTGRES_DB: mancala
+      POSTGRES_USER: mancala
+      POSTGRES_PASSWORD: mancala
+
+  backend:
+    depends_on:
+      - db
+    build:
+      context: .
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+    ports:
+      - 8080:8080

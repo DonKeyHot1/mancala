@@ -1,0 +1,7 @@
+build/generated/settings.gradle
+build/generated/build.gradle.kts
+build/generated/README.md
+build/generated/pom.xml
+build/generated/src/main/resources/**
+build/generated/src/test/**
+build/generated/src/main/java/org/openapitools/**

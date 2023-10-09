@@ -1,0 +1,435 @@
+openapi: 3.0.3
+
+info:
+  title: Mancala Game Server API
+  description: Game server for Mancala
+  contact:
+    name: Maksim Nagovitsin
+    email: nagovitsin.maxim@gmail.com
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: player
+    description: Operations related to players
+  - name: game
+    description: Operations related to games
+  - name: participation
+    description: Operations related to players participation in games
+
+paths:
+
+  /players:
+    post:
+      tags:
+        - player
+      summary: Create new player
+      description: Creates new player
+      operationId: createNewPlayer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNewPlayerRequest'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateNewPlayerResponse'
+
+  /players/{playerId}:
+    parameters:
+      - name: playerId
+        in: path
+        required: true
+        description: ID of player
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - player
+      summary: Get player
+      description: Returns player
+      operationId: getPlayer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetPlayerResponse'
+
+  /games:
+    parameters:
+      - name: x-player-id
+        in: header
+        required: true
+        description: ID of player
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Limit of games to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: offset
+          in: query
+          required: false
+          description: Offset of games to return
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      tags:
+        - game
+      summary: Get available games
+      description: Returns list of available games
+      operationId: getAvailableGames
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAvailableGamesResponse'
+
+    post:
+      tags:
+        - game
+      summary: Create new game
+      description: Creates new game that will be available for players to join
+      operationId: createNewGame
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNewGameRequest'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateNewGameResponse'
+
+  /games/{gameId}:
+    parameters:
+      - name: gameId
+        in: path
+        required: true
+        description: ID of game
+        schema:
+          type: string
+          format: uuid
+
+      - name: x-player-id
+        in: header
+        required: true
+        description: ID of player
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - game
+      summary: Get game state
+      description: Returns current game state
+      operationId: getGameState
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameState'
+    put:
+      tags:
+        - game
+      summary: Make move
+      description: Processes move and returns new game state
+      operationId: makeMove
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MakeMoveRequest'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameState'
+
+  /participations:
+    parameters:
+      - name: x-player-id
+        in: header
+        required: true
+        description: ID of player
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - participation
+      summary: Create new participation
+      description: Creates new participation
+      operationId: createNewParticipation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNewParticipationRequest'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateNewParticipationResponse'
+
+
+components:
+
+  schemas:
+
+    PlayerBoardStatePit:
+      type: object
+      properties:
+        index:
+          type: integer
+          minimum: 0
+          maximum: 12
+          example: 4
+        stones:
+          type: integer
+          minimum: 0
+          example: 4
+
+    PlayerBoardState:
+      type: object
+      required:
+        - pits
+        - score
+      properties:
+        pits:
+          type: array
+          minLength: 6
+          maxLength: 6
+          items:
+            $ref: '#/components/schemas/PlayerBoardStatePit'
+        score:
+          type: integer
+          minimum: 0
+          example: 24
+
+    GameBoardState:
+      type: object
+      required:
+        - self
+        - opponent
+      properties:
+        self:
+          $ref: '#/components/schemas/PlayerBoardState'
+        opponent:
+          $ref: '#/components/schemas/PlayerBoardState'
+
+    GameStatus:
+      type: string
+      enum:
+        - WAITING_FOR_PLAYERS
+        - SELF_TURN
+        - OPPONENT_TURN
+        - SELF_WIN
+        - OPPONENT_WIN
+        - DRAW
+      example: IN_PROGRESS
+
+    GameState:
+      type: object
+      required:
+        - title
+        - board
+        - players
+        - status
+      properties:
+        title:
+          type: string
+          example: Newbies only!
+        board:
+          $ref: '#/components/schemas/GameBoardState'
+        status:
+          $ref: '#/components/schemas/GameStatus'
+        players:
+          $ref: '#/components/schemas/GameStatePlayers'
+
+    GameStatePlayers:
+      type: object
+      required:
+        - self
+        - opponent
+      properties:
+        self:
+          $ref: '#/components/schemas/GameStatePlayer'
+        opponent:
+          $ref: '#/components/schemas/GameStatePlayer'
+
+    GameStatePlayer:
+      type: object
+      required:
+        - nickname
+      properties:
+        nickname:
+          type: string
+          example: Champion_1337
+
+    CreateNewPlayerRequest:
+      type: object
+      required:
+        - requestId
+        - nickname
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          description: ID of request
+          example: 65b8fbc8-2cf5-40fd-9bdc-e7c894c20eb8
+        nickname:
+          type: string
+          example: Champion_1337
+
+    CreateNewPlayerResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID of player
+          example: 65b8fbc8-2cf5-40fd-9bdc-e7c894c20eb8
+
+    GetPlayerResponse:
+      type: object
+      required:
+        - id
+        - nickname
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID of player
+          example: 65b8fbc8-2cf5-40fd-9bdc-e7c894c20eb8
+        nickname:
+          type: string
+          example: Champion_1337
+
+    CreateNewGameRequest:
+      type: object
+      required:
+        - requestId
+        - title
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          description: ID of request
+          example: 65b8fbc8-2cf5-40fd-9bdc-e7c894c20eb8
+        title:
+          type: string
+          example: Newbies only!
+
+    CreateNewGameResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID of game
+          example: 65b8fbc8-2cf5-40fd-9bdc-e7c894c20eb8
+
+    GetAvailableGamesResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/GetAvailableGamesResponseItem'
+
+    GetAvailableGamesResponseItem:
+      type: object
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID of game
+          example: 65b8fbc8-2cf5-40fd-9bdc-e7c894c20eb8
+        title:
+          type: string
+          example: Newbies only!
+
+    MakeMoveRequest:
+      type: object
+      required:
+        - pitIndex
+      properties:
+        pitIndex:
+          type: integer
+          example: 4
+
+    CreateNewParticipationRequest:
+      type: object
+      required:
+        - requestId
+        - isPlayer1
+        - gameId
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          description: ID of request
+          example: 65b8fbc8-2cf5-40fd-9bdc-e7c894c20eb8
+        isPlayer1:
+          type: boolean
+        gameId:
+          type: string
+          format: uuid
+          description: ID of game
+          example: 65b8fbc8-2cf5-40fd-9bdc-e7c894c20eb8
+
+    CreateNewParticipationResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID of participation
+          example: 65b8fbc8-2cf5-40fd-9bdc-e7c894c20eb8
